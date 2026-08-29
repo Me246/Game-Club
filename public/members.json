@@ -1,0 +1,13 @@
+{
+  "_note": "GitHub Pages(정적 배포)용 멤버 목록입니다. users.json에는 아이디/비밀번호가 들어 있어 절대 커밋하지 않고, 화면에 보여줄 값만 여기에 옮겨 적었어요. 멤버가 바뀌면 이 파일을 직접 수정하세요.",
+  "members": [
+    { "id": "1787983538115", "nickname": "퍼퍼최", "name": "변승현", "avatarColor": "#1c0fb8", "avatarImage": null },
+    { "id": "1787988662035", "nickname": "제발 좃을 까렴 ㅠㅠㅠㅠㅠ", "name": "엄주원", "avatarColor": "#1c0fb8", "avatarImage": null },
+    { "id": "1787990098926", "nickname": "gggfgdfhgdhgfd", "name": "장예준", "avatarColor": "#2ec4b6", "avatarImage": null },
+    { "id": "1787995439931", "nickname": "야자나무", "name": "양준수", "avatarColor": "#ffe234", "avatarImage": null },
+    { "id": "1787996502329", "nickname": "겁나 힘들게 만들었는데 수요가 없는 ㅠㅠㅠㅠ", "name": "ㅇ", "avatarColor": "#2ec4b6", "avatarImage": null },
+    { "id": "1788001341835", "nickname": "집사, 그의 공들을 삭제해", "name": "김강민도원", "avatarColor": "#ff8a5c", "avatarImage": null },
+    { "id": "1788004370621", "nickname": "아모구스 마이 라이프 버터 플라이 죽지않는시체들의높은학교", "name": "ㅤ", "avatarColor": "#4a3d6b", "avatarImage": null }
+  ],
+  "colors": ["#1c0fb8", "#9b6bff", "#ff5c72", "#ffe234", "#2ec4b6", "#ff8a5c", "#4a3d6b"]
+}
