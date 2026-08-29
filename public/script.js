@@ -7,9 +7,11 @@ let pickedColor = null;
 const $ = (id) => document.getElementById(id);
 
 // GitHub Pages처럼 server.js 없이 정적 파일만 올라간 환경인지 판별해요.
-// 정적 모드에서는 로그인 서버가 없으니 로그인 화면을 건너뛰고 바로 들어가고,
+// 정적 모드에서는 서버 대신 브라우저가 auth.json의 bcrypt 해시로 비밀번호를 확인하고,
 // 멤버 목록은 API 대신 public/members.json 파일에서 읽어옵니다.
 const STATIC_MODE = location.hostname.endsWith('github.io');
+const STORED_USER_KEY = 'staticUserId';   // 정적 모드에서 로그인 상태를 기억하는 곳
+let staticAccounts = null;
 
 // ---------- 시작 (로딩 화면 최소 노출 시간 보장) ----------
 boot();
@@ -29,7 +31,7 @@ function hideLoadingScreen() {
 
 async function init() {
   if (STATIC_MODE) {
-    await enterApp();
+    await initStatic();
     return;
   }
   try {
@@ -44,6 +46,51 @@ async function init() {
   } catch {
     showAuthScreen();
   }
+}
+
+// ================= 정적 모드 로그인 =================
+// 서버가 없으니 auth.json에 들어 있는 bcrypt 해시와 브라우저에서 직접 대조해요.
+// 새 회원가입은 불가능하고, 이미 만들어진 계정으로 들어오는 것만 됩니다.
+async function initStatic() {
+  // 서버가 없어 동작할 수 없는 회원가입 탭은 숨겨요.
+  document.querySelector('.auth-tab-btn[data-auth="signup"]').classList.add('hidden');
+
+  const savedId = localStorage.getItem(STORED_USER_KEY);
+  if (savedId) {
+    const me = await findStaticMember(savedId);
+    if (me) {
+      currentUser = me;
+      await enterApp();
+      return;
+    }
+    // members.json에서 사라진 계정이면 로그인 기록을 지워요.
+    localStorage.removeItem(STORED_USER_KEY);
+  }
+  showAuthScreen();
+}
+
+async function loadStaticMembers() {
+  if (!members.length) {
+    const data = await fetch('members.json').then(r => r.json());
+    members = data.members;
+    avatarColors = data.colors;
+  }
+  return members;
+}
+
+async function findStaticMember(id) {
+  return (await loadStaticMembers()).find(m => m.id === id) || null;
+}
+
+// 아이디/비밀번호가 맞으면 멤버 정보를, 틀리면 null을 돌려줘요.
+async function staticLogin(username, password) {
+  if (!staticAccounts) {
+    staticAccounts = (await fetch('auth.json').then(r => r.json())).accounts;
+  }
+  const account = staticAccounts.find(a => a.username === username);
+  if (!account) return null;
+  if (!dcodeIO.bcrypt.compareSync(password, account.passwordHash)) return null;
+  return findStaticMember(account.id);
 }
 
 // ================= 인증 화면 =================
@@ -65,6 +112,16 @@ document.querySelectorAll('.auth-tab-btn').forEach(btn => {
 $('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('loginError').textContent = '';
+
+  if (STATIC_MODE) {
+    const user = await staticLogin($('loginUsername').value.trim(), $('loginPassword').value);
+    if (!user) { $('loginError').textContent = '아이디 또는 비밀번호가 틀렸어요.'; return; }
+    localStorage.setItem(STORED_USER_KEY, user.id);
+    currentUser = user;
+    await enterApp();
+    return;
+  }
+
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -86,6 +143,12 @@ $('loginForm').addEventListener('submit', async (e) => {
 $('signupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('signupError').textContent = '';
+
+  if (STATIC_MODE) {
+    $('signupError').textContent = '여기서는 회원가입을 할 수 없어요. 동아리 방장에게 계정을 요청해주세요.';
+    return;
+  }
+
   try {
     const res = await fetch('/api/signup', {
       method: 'POST',
@@ -107,7 +170,11 @@ $('signupForm').addEventListener('submit', async (e) => {
 });
 
 $('logoutBtn').addEventListener('click', async () => {
-  await fetch('/api/logout', { method: 'POST' });
+  if (STATIC_MODE) {
+    localStorage.removeItem(STORED_USER_KEY);
+  } else {
+    await fetch('/api/logout', { method: 'POST' });
+  }
   currentUser = null;
   $('mainApp').classList.add('hidden');
   $('loginUsername').value = '';
@@ -120,13 +187,10 @@ async function enterApp() {
   $('authScreen').classList.add('hidden');
   $('mainApp').classList.remove('hidden');
 
-  if (STATIC_MODE) {
-    // 로그인한 사람이 없으니 "OO님 환영해요" 줄과 프로필 수정 안내는 숨겨요.
-    $('userbar').classList.add('hidden');
-    $('memberHint').classList.add('hidden');
-  } else {
-    $('myNickname').textContent = currentUser.nickname;
-  }
+  $('myNickname').textContent = currentUser.nickname;
+
+  // 정적 모드에는 저장할 서버가 없어 프로필 수정을 막아두고, 안내 문구도 숨겨요.
+  if (STATIC_MODE) $('memberHint').classList.add('hidden');
 
   // 상대경로로 두면 로컬(/)에서도, Pages 서브경로(/Game-Club/)에서도 그대로 동작해요.
   const [dictRes, membersRes] = await Promise.all([
@@ -192,7 +256,8 @@ function renderMembers(list) {
   if (!list.length) { el.innerHTML = '<div class="hint">아직 가입한 멤버가 없어요.</div>'; return; }
 
   el.innerHTML = list.map(m => {
-    const isMe = currentUser && m.id === currentUser.id;
+    // 정적 모드에서는 수정한 걸 저장할 서버가 없어 연필 버튼을 띄우지 않아요.
+    const isMe = !STATIC_MODE && currentUser && m.id === currentUser.id;
     const avatarStyle = m.avatarImage
       ? `background-image:url('${m.avatarImage}')`
       : `background:${m.avatarColor}`;

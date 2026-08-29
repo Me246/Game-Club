@@ -29,6 +29,29 @@ npm start
 4. 각자 회원가입 → 로그인 → 자기 프로필 카드에서 ✎ 버튼으로 닉네임/이름/색깔/사진 수정 가능 ("사진 선택"으로 프로필 사진 업로드, 5MB 이하 이미지만 가능. "사진 삭제"를 누르면 다시 색상 아바타로 돌아감)
 5. 내 컴퓨터를 끄면 서버도 꺼져서 다들 접속이 안 돼요. 다시 켤 땐 `npm start`만 다시 하면 됨 (가입 데이터는 `users.json`에 저장되어 있어서 안 사라져요)
 
+## 인터넷에 올려둔 버전 (GitHub Pages)
+
+주소: **https://me246.github.io/Game-Club/** — 내 컴퓨터를 안 켜도 친구들이 아무 때나 볼 수 있어요.
+
+`main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `public/` 폴더를 자동 배포해요.
+
+여긴 `server.js`가 돌지 않는 **정적 사이트**라 동작이 조금 달라요 (`script.js`의 `STATIC_MODE`가 알아서 갈라줍니다):
+
+| 기능 | 로컬 `npm start` | GitHub Pages |
+|---|---|---|
+| 로그인 | 서버가 확인 | 브라우저가 `public/auth.json`의 해시로 확인 |
+| 회원가입 | 가능 | **불가** (탭 자체가 숨겨짐) |
+| 멤버 목록 | `users.json` | `public/members.json` |
+| 프로필 수정 / 사진 업로드 | 가능 | **불가** (✎ 버튼 안 나옴) |
+
+### 멤버를 추가하거나 정보를 바꾸려면
+로컬에서 `npm start`로 가입시킨 뒤, `users.json`의 값을 손으로 옮겨 적으면 돼요.
+
+1. `public/members.json` → 화면에 보일 `nickname` / `name` / `avatarColor` / `avatarImage`
+2. `public/auth.json` → 로그인에 쓸 `id` / `username` / `passwordHash` (`users.json`에서 그대로 복사)
+3. 프로필 사진은 `public/avatars/` 에 넣고 `members.json`의 `avatarImage`를 `avatars/파일명.jpg` 로 지정
+   (원본이 크면 짧은 변 400px 정도로 줄여서 넣기 — 4MB짜리를 그냥 올리면 폰에서 느려요)
+
 ## 단어 추가하는 법
 `public/dictionary.json`을 열어서 아래 형식으로 한 줄씩 추가하면 됨:
 ```json
@@ -43,5 +66,7 @@ npm start
 - 다른 파일 형식(wav, ogg 등)을 쓰고 싶으면 `public/index.html`에서 `<audio id="bgmAudio" src="bgm.mp3" ...>` 부분의 `bgm.mp3`를 원하는 파일명으로 바꿔주면 돼요.
 
 ## 주의할 점
-- `users.json`에는 (해시된) 비밀번호와 실명이 들어있어요. 이 파일은 절대 GitHub 같은 곳에 올리면 안 돼요 (`.gitignore`에 이미 추가되어 있어요).
+- `users.json` 파일 자체는 절대 GitHub에 올리면 안 돼요 (`.gitignore`에 이미 추가되어 있어요).
+- ⚠ **다만 GitHub Pages 로그인을 붙이면서 `public/auth.json`에 비밀번호 해시가 공개됐어요.** 저장소가 public이라 누구나 볼 수 있습니다. bcrypt라 바로 뚫리진 않지만 짧은 비번은 오래 못 버텨요. **이 사이트 비번은 여기서만 쓰고, 다른 서비스에서 쓰는 비번과 같으면 바꿔주세요.**
+- 이게 부담되면 `public/auth.json`을 지우고 `main`에 push하면 즉시 사라집니다 (대신 Pages에서 로그인이 안 되고, 이미 공개된 해시는 커밋 히스토리에 남으니 비번을 바꾸는 게 확실해요).
 - 이 로그인 시스템은 친구들끼리 편하게 쓰라고 만든 간단한 버전이에요. 은행 앱처럼 강력한 보안은 아니니, 중요한 개인정보(주민번호, 계좌번호 등)는 절대 올리지 마세요.
